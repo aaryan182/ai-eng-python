@@ -1,0 +1,59 @@
+Module - single python file
+
+math_utils.py
+agents.py
+
+if it ends with .py -> Module
+
+we can import modules anywhere
+
+math_utils.py file :
+
+def add(a, b):
+    return a + b
+
+main.py
+
+from math_utils import add
+
+print(add(5, 10))
+
+In AI engineering 
+
+rag.py , embedding.py, agent_core.py, tool.router.py
+
+
+
+A package is a folder containing modules. 
+
+ai_project / 
+        agents /
+            __init__.py
+            research_agent.py
+            summarise_agent.py
+        utils /
+            text_cleaner.py
+        main.py
+
+
+A package must have 
+__init__.py
+this folder is part of the project we can import from it
+
+
+Virtual Environments 
+without virtual environments we will end up with
+broken depedencies 
+verison conflicts
+different proejct errors
+
+In project folder 
+python -m venv venv
+
+windows activate venv\Scripts\activate
+
+for installation pip install depedency_name
+
+Requirements File:
+pip install -r requirements.txt
+
