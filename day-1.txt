@@ -1,0 +1,124 @@
+1) Python variables don't require type declarations
+
+name = "Aaryan"
+age = 22
+
+2) Data types 
+String, integer, Float, Boolean, None( used in optional values)
+
+3) Collections 
+LLM -> returns dict
+RAG -> list of chunks
+JSON -> nested dict
+Embeddings -> list of floats
+
+3.1) List - Ordered, Changeable
+It is similar to array in JS
+
+Example: 
+users = ["ram", "shyam", "aaryan"]
+
+operations we can do : 
+users.append("new_user")
+
+users[0]        // "ram"
+users[-1]       // last element
+users[:2]       // slicing -> ["ram","shyam"]
+
+3.2) Tuple - Ordered , Not Changeable
+
+point = (10,30)
+Used for coordinates , database row, function returns
+
+
+3.3) Set - Unodered , No Duplicates, Unique
+
+used for removing duplicates , fast lookup
+
+3.4) Dictionary - Python JSON 
+user = {
+    "name": "aaryan",
+    "age": 22
+}
+
+user["name"]  // "aaryan"
+
+user["role"]  // AI Engineer
+
+
+4) Conditional Logic 
+
+age == 22
+
+if age > 18: 
+    print("Adult")
+elif age == 18:
+    print("just turned adult")
+else:
+    print("minor")
+
+
+5) Loops 
+
+For Loops
+
+for i in range(5):
+    print(i)
+
+Loop through list
+
+skills = ["python", "fastapi", "redis"]
+
+for skill in skills:
+    print(skill)
+
+While Loop
+
+count = 0
+while count < 3:
+    count += 1
+
+
+6) List Comprehension
+
+transform a list in one line
+
+Instead of :
+
+result = []
+for x in [1, 2, 3]:
+    result.append(x*2)
+
+we write:
+
+result = [x*2 for x in [1, 2, 3]]
+
+
+it is used in Embeddings, dataset processing, chunking text, cleaning LLM responses, transforming tokens
+
+
+7) Functions - building reusable Logic
+
+def greet(name):
+    return f"Hello {name}"
+
+greet("Aaryan")
+
+Functions with defaults: 
+def send_msg(msg, user= "guest"):
+    return f"{user}: {msg}"
+
+
+8) Pythonic Patterns 
+
+a, b = 5, 10
+
+swap values
+a, b = b, a
+
+Unpacking lists
+nums = [1, 2,3]
+x, y, z = nums
+
+
+
