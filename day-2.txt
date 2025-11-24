@@ -1,0 +1,128 @@
+OOP(Object Oriented Programming) in python
+
+Agents = Objects
+Tools = Methods
+LLM Pipelines = Classes
+LangGraph Nodes = Encapsulated Behavior
+
+
+OOP => Think of a class as a blueprint and an object as a real thing built from that blueprint
+
+Class => defines structure + Behavior
+Object => actually performs actions
+
+
+class Person:
+    pass
+
+then object creation
+p = Person()
+
+
+Constructors (__init__)
+
+this runs when an object is created 
+
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+p = Person("Aaryan",22)
+print(p.name)
+print(p.age)
+
+
+self represents the object itself
+
+p = Person("aar",22)
+self.name = "aar"
+self.age = 22
+this allows each object to have its own data
+
+
+Methods = functions inside a class
+
+class Person:
+    def greet(self):
+        return "Hello"
+
+p = Person()
+print(p.greet())
+
+
+Methods using Object data
+Just like an agent using its memory
+
+class Person:
+    def __init__(self, name):
+        self.name = name
+    
+    def greet(self):
+        return f"Hello, I am {self.name}"
+
+p = Person("AAr)
+print(p.greet())
+
+
+Encapsulation (protecting data)
+hide data inside Objects
+
+prefix with _
+
+class BankAccount:
+    def __init__(self, balance):
+        self._balance = balance   // private attribute
+    
+    def deposit(self,amount):
+        self._balance += amount
+    
+    def get_balance(self):
+        return slef._balance
+
+
+Inheritance - Reusing Behavior
+
+Base Agent -> specialized agent inherits
+
+class Animal:
+    def sound(self):
+        return "Unknown"
+    
+class Dog(Animal):
+    def sound(self):
+        return "Bark"
+    
+class Cat(Animal):
+    def sound(self):
+        return "Meow"
+
+
+Polymorphism - same method , different Behavior
+
+def makes_sound(animal):
+    print(animal.sound())
+
+makes_sound(Dog()) # Bark
+makes_sound(Cat()) # Meow
+
+
+Class methods & Static Methods
+works with class, not object
+
+class User:
+    count = 0
+
+    @classmethod
+    def increment_count(cls):
+        cls.count += 1
+    
+
+Static Methods(utility)
+Doesn't use class or object
+
+class Math:
+    @staticmethod
+    def add(a,b):
+        return a + b
+
