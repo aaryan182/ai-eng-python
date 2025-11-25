@@ -1,0 +1,175 @@
+Decorators are used for :
+LLM tool wrappers
+Logging prompts/responses
+Retrying failed API calls
+Rate Limiting
+Monitoring agent steps
+Controller graphs in LangGraph
+
+
+A decorator is a function modifies another function without touching its code
+wrapping something with extra power
+
+like adding logging, retry, caching, authentication, Monitoring
+without modifying the original function
+
+
+A decorator is a function that:
+takes a function, returns a new function
+
+def my_decorator(func):
+    def wrapper():
+        print("Before function")
+        func()
+        print("After function")
+    return wrapper
+
+using the decorator
+@my_decorator
+def say_hello():
+    print('Hello")
+
+say_hello()
+
+
+Real Decorator
+
+
+
+def debug(func):
+    def wrapper():
+        print(f"Runing {func.__name__}()")
+        result = func()
+        print(f"Finished {func.__name__}()")
+        return result
+    result wrapper
+
+@debug
+def greet():
+    print("Hello")
+
+greet()
+
+
+Imp) Decorators with arguments(3 layer structure)
+decorator(arg) -> returns -> real decorator -> returns -> wrapper
+
+def repeat(n):
+    def decorator(func):
+        def wrapper():
+            for _ in range(n):
+                func()
+        return wrapper
+    return decorator
+
+
+@repeat(3)
+def hi():
+    print('HI')
+
+hi()
+
+output : 
+HI
+HI
+HI
+
+
+Imp) using functions.wraps 
+If you don't use this, decorators break metadata
+
+from functools import wraps
+
+def debug(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        print("Debug:", func.__name__)
+        return func(*args, **kwargs)
+    return wrapper
+
+
+This keeps orginal function name, original docstirng, debugging tool working
+
+Imp) Decorators with parameters
+
+Decorator accepting parameters + passing them to wrapped function
+
+def ensure_min_length(min_length):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(text):
+            if len(text) < min_length:
+                raise ValueError("Input too short")
+            return func(text)
+        return wrapper
+    return decorator
+
+@ensure_min_length(10)
+def process_text(text):
+    return text.upper()
+
+Decorators that handle any arguments
+
+def log(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        print("Calling":, func.__name__)
+        return func(*args, **kwargs)
+    return wrapper
+
+
+
+
+
+REAL WORLD AI ENGINEERING Decorators
+
+A) Retry Decorator for LLM API calls
+
+import time
+
+def retry(times = 3, delay = 1):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(times):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    print(f"Error: {e}, retrying...")
+                    time.sleep(delay)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+usage 
+
+@retry(times = 3, delay = 2)
+def call_llm():
+    print("Calling OpenAI..")
+
+
+B) Time Measurement Decorator
+
+import time
+
+def measure_time(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        print(f"{func.__name__} took {end - start: .2f}s")
+        return result
+    return wrapper
+
+
+C) Log Prompts Decorator
+
+def log_prompt(func):
+    @wraps(func)
+    def wrapper(prompt):
+        print("PROMPT:", prompt)
+        return func(prompt)
+    return wrapper
+
