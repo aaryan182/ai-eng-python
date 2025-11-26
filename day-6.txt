@@ -1,0 +1,206 @@
+Exception: Something went wrong. I am stopping unless you handle it
+
+x = 10/0 => ZeroDivisonError
+
+This crashes the program , so we catch errors
+
+try:
+    x = 10/0
+except Exception as e:
+    print("error occured:", e)
+
+
+3) Catching specific exceptions
+Don't do 
+except:
+    pass
+This hides errors 
+
+Do this:
+try: 
+    number = int("hello")
+except ValueError:
+    print("Cannot convert to int")
+
+
+
+4) multiple Except blocks
+
+try:  
+    data = {"age": 22}
+    print(data["name"])
+except KeyError:
+    print("Invalid Key")
+except TypeError:
+    print("Wrong Type")
+
+
+5) Finally always runs
+used for cleanup: close DB, realease GPU, release memory, close File
+
+
+try:
+    f = open("data.txt")
+    print(f.read())
+except FileNotFoundError:
+    print("File missing")
+finally:
+    print("Closing File")
+    f.close()
+
+
+
+6) else: runs only if no error
+
+try:
+    x = 5 + 5
+except: 
+    print("Error")
+else:
+    print("No error, result = ", x)
+
+
+7) Raise own errors 
+Great for validating agent inputs
+
+def process_age(age):
+    if age < 0:
+        raise ValueError("Age cannot be negative")
+
+
+
+8) Custom exceptions
+
+class LLMError(Exception):
+    pass
+
+def call_llm():
+    raise LLMError("OpenAI failed")
+
+
+why => cleaner debugging, better logs, specific error handling
+
+
+
+
+
+9) AI Error Handling Wrapper 
+Retry LLM on failure
+
+import time
+from functools import wraps
+
+
+def retry(times = 3, delay = 1):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(times):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    print(f"Error: {e}, retrying {attempt+1}/{times"})
+                    time.sleep(delay)
+            raise Exception("All retries failed")
+        return wrapper
+    return decorator
+
+@retry(times = 3)
+def call_openai():
+    raise Exception("random failure")
+
+call_openai()
+
+
+10) Context Managers (V important)
+
+with open("file.txt") as f:
+
+meaning: automatically opens , automatically closes, handles error safely
+
+How it works: a class with two methods: __enter__, __exit__
+
+Example:
+
+class FileManager:
+    def __init(self,path):
+        self.path = path
+    
+    def __enter__(self):
+        self.file = open(self.path)
+        return self.file
+    
+    def __exit__(self, exc_type, exc, tb):
+        self.file.close()
+
+Usage:
+with FileManager("data.txt") as f:
+    print(f.read())
+
+
+Context managers = "do something before and after automatically"
+
+
+
+11) Pythonic Error- Handling Patterns
+
+Don't do:
+except:
+    pass
+
+Do:
+except Exception as e:
+    print("Error:", e)
+
+Avoid too much try/except in one function
+Better extract into helpers
+
+raise ValueError("Prompt cannot be empty")
+
+Log befor raising:
+print("LLM failed with status 429")
+raise LLMError("rate limited")
+
+
+
+
+
+12) Mini AI pipeline with errors
+class EmptyPromptError(Exception):
+    pass
+
+def validate(prompt):
+    if not prompt.strip():
+        raise EmptyPromptError("Prompt cannot be empty")
+    return prompt
+
+def llm(prompt):
+    if "error" in prompt:
+        raise Exception("Model explosion")
+    return prompt.upper()
+
+def run_agent(prompt):
+    try: 
+        p = validate(prompt)
+        response = llm(p)
+        return response
+    except EmptyPromptError as e:
+        return f"Fix prompt: {e}"
+    except Exception as e:
+        return f"LLM Failed: {e}"
+    finally:
+        print("Agent finished running")
+    
+print(run_agent("hello"))
+print(run_agent(""))
+print(run_agent("error"))
+
+
+output:
+
+Agent finished running
+hello
+Agent finished running
+Fix prompt: Prompt cannot be empty
+Agent finished running
+LLM failed: Model explosion
