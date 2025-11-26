@@ -1,0 +1,118 @@
+Iterators -  Anything we can loop over = iterator
+
+nums = [1, 2, 3]
+for n in nums:
+    print(n)
+
+nums - it is an iterable
+
+Generator - is a function that produces values one at a time using yield
+
+Normal function: runs once , returns one value, ends
+
+Generator function: remembers its state, returns many values(one per iteration), pauses at yield, continues when called again
+
+Basic Generator example:
+def count_to_three():
+    yield 1
+    yield 2
+    yield 3
+
+for num in count_to_three():
+    print(num)
+
+output: 
+1
+2
+3
+
+
+yield is like return... but with memory
+
+unlike return, yield doesn't stop the function completely
+It pauses
+Next call -> resumes from the exact same point
+
+This is perfect for: streaming, async operations, large files, long running tasks, token by token output
+
+
+Why AI need generators:
+token streaming from LLMs , reading huge PDFs or datasets, FastAPI streaming responses, chunking text for RAG
+
+Generators = memory efficiency + speed
+
+
+
+
+Example: Generator for counting
+
+def counter(n):
+    for i in range(1, n+1):
+        yield i
+
+for num in counter(5):
+    print(num)
+
+
+Generator expressions:
+
+List comprehension
+[x*2 for x in range(5)]
+
+Generator Expression:
+(x*2 for x in range(5))
+
+difference between List Comprehension and Generator expression:
+LIst -> creates Full list in memory
+Generator -> produces item one-by-one
+
+
+
+
+8) Reading Large file with a Generator
+used in: LLM training, RAG, Preprocessing, PDF parsing
+
+def read_lines(path):
+    with open(path) as f:
+        for line in f:
+            yield line.strip()
+
+for line in read_lines("big.txt"):
+    print(line)
+
+
+9) Token Streaming from an LLM
+
+def fake_llm_stream(prompt):
+    for word in prompt.split():
+        yield word
+
+for token in fake_llm_stream("hello there i am streaming"):
+    print(token)
+
+output:
+hello 
+there
+i
+am
+streaming
+
+
+
+10) Generator Pipelining
+clean -> tokenize -> uppercase -> stream -> output
+
+def clean(words):
+    for w in words:
+        yield w.strip()
+
+def to_upper(words):
+    for w in words:
+        yield w.upper()
+    
+data = [ "ai", "engineering", "is", "cool"]
+
+pipeline = to_upper(clean(data))
+
+for word in pipeline:
+    print(word)
