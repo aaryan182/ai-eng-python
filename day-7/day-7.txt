@@ -1,0 +1,42 @@
+FastAPI Basics
+
+Pydantic Models
+
+Pydantic is: a validator, a type- character , a serializer , the base of LLM tool definitions
+
+from pydantic import BaseModel
+
+class SummarizeInput(BaseModel):
+    text: str
+
+@app.post("/summarize")
+def summarize(data: SummarizeInput):
+    return {"summary": data.text[:20] + "..."}
+
+
+Send JSON:
+{
+    "text": "Python is an amazing language used in AI"
+}
+
+7) Async Endpoints ( Very important for LLM Calls)
+
+LLM calls take time
+Use async endpoints to avoid blocking the server
+
+@app.get("/slow")
+async def slow():
+    return {"message": "This is async!"}
+
+
+if we use await:
+
+import asyncio
+
+@app.get("/wait")
+async def wait():
+    await asycnio.sleep(2)
+    return {"done": True}
+
+
+Async = crucial for calling multiple models simultaneously, parallel RAG, parallel scraping, streaming, background tasks
