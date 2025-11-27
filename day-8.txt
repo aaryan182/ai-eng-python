@@ -1,0 +1,24 @@
+LLM Basics + AI Integration
+
+An LLM is a predictive text machine
+
+input -> LLM -> output
+
+It predicts the next token repeatedly until the answer is complete
+
+LLMs dont know things
+they model patterns from training data
+
+
+A token is a chunk of text like: hello , ai , engine, punctuation, even parts of words
+
+This matters because: cost depends on tokens, context window depends on tokens, summarization depends on tokens 
+
+
+3) Understanding an LLM API call
+
+We provide: model name, input prompt, temperature(creativity), max tokens(output length), system instructions
+
+AI returns: 
+response text, usage(token count), finish_reason
+
