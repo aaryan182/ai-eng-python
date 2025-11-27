@@ -1,0 +1,149 @@
+Advance LLM Foundations
+
+Tokens != words
+Tokens != characters
+
+LLMs read tokens, not text.
+
+Example: 
+"ChatGPT is best"
+
+Tokenized: 
+["chat", "G", "PT", " is", "best"]
+
+Why this matters: cost is per token, context window is token-limited, summarizes must be short, LLM can stop mid-thought if tokens exceed limit
+
+2) Temperatures & sampling(Model behavior Control)
+
+Temperature(0 - 1)
+Control randomness => 
+0: deterministic, perfect for reasonining
+0.3: good for coding
+0.7: creative writing
+1: chaotic
+
+
+Top-p (nucleus sampling)
+Model selects tokens with top % probability
+lower -> safer
+higher -> freer
+
+example:
+response = client.chat.completions.create(
+    model = "gpt-4.1-mini",
+    messages = [{"role":"user", "content": "write a poem"}],
+    temperature = 0.9,
+    top_p = 0.8
+    frequency_penalty=0.3
+)
+
+3) Roles in chat models
+
+system: sets identity/ behavior -> you are an expert python tutur who explains beautifully
+
+user: user messages
+assistant: models previous responses
+
+messages = [
+    {"role": "system", "content": "You are a helpful AI tutor."},
+    {"role": "user", "content": "Explain decorators."}
+]
+
+4) Prompt Templates 
+Bad Prompt: 
+summarize this text: {text}
+
+Good Prompt:
+You are expert summarizer, summarize the text below in 3 bullet points
+keep each bullet under 12 words
+
+Text: 
+
+Always include: 
+role, instructions, style, constraints, examples
+
+
+5) Streaming Tokens 
+Models like GPT- 4.1 and gemini can stream responses token by token
+
+def stream_llm(prompt):
+    for chunk in client.chat.completions.create(
+        model = "gpt-4.1-mini",
+        messages = [{"role": "user", "content": "prompt"}],
+        stream = True
+    ):
+     if chunk.choices[0].delta.get("content"):
+        print(chunk.choices[0].delta["content"], end= "")
+
+
+
+6) Retry Logic + Backoff
+
+LLMs often fail -> rate limit, timeouts, 500 errors
+
+
+import time, random
+from openai import OpenAIError
+
+def retry_llm_call(func):
+    for attempt in range(5):
+        try:
+            return func()
+        except Exception as e:
+            wait = (2 ** attempt) + random.random()
+            print(f"Retrying in {wait:.2f}s...")
+            time.sleep(wait)
+    raise Exception("All retries failed")
+
+
+7) Reusable LLM Client Class
+This is exactly how real AI companies structure their code
+
+from openai import OpenAI
+import os
+
+class LLMClient:
+    def __init__(self, model= "gpt-4.1-mini"):
+        self.client = OpenAI(api_key= os.getenv("OPENAI_API_KEY"))
+        self.model = model
+    
+    def ask(self, prompt, temperature=0):
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature
+        )
+        return response.choices[0].message["content"]
+
+bot = LLMClient()
+print(bot.ask("Explain list comprehensions."))
+
+
+
+
+
+FULL FAST API LLM ENDPOINT
+
+from fastapi import APIRouter
+from pydantic import BaseModel
+from openai import OpenAI
+import os
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+router = APIRouter()
+
+class Prompt(BaseModel):
+    text: str
+
+@router.post("/chat")
+async def chat(data: Prompt):
+    response = client.chat.completions.create(
+        model="gpt-4.1",
+        messages=[
+            {"role": "system", "content": "You are an expert assistant."},
+            {"role": "user", "content": data.text}
+        ],
+        temperature=0.2
+    )
+    return {"response": response.choices[0].message["content"]}
