@@ -1,0 +1,88 @@
+Before function calling LLMs could only talk they couldn't act
+
+Function calling changed everything: 
+the model decides which tool to use, the model outputs JSON arguments, your code executes the tool, you feed results back to model, model returns final answer
+
+
+This creates a closed loop intelligent agent
+
+
+Function calling works like: 
+user -> model -> (model decides: call tool?) -> Tool execution -> Model -> Final answer
+
+
+Function calling with openAI
+
+pip install openai
+
+from openai import OpenAI
+client = OpenAI()
+
+response = client.chat.completions.create(
+    model = "gpt-4.1-mini",
+    messages = [{"role": "user", "content": "What is 5 + 4?"}],
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                    "name": "add",
+                    "description": "Add two numbers",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "a": {"type": "number"},
+                            "b": {"type": "number"}
+                        },
+                        "required": ["a", "b"]
+                    }
+                }
+            }
+        ]
+    )
+
+
+The llm will return tool_call
+
+{
+  "id": "...",
+  "type": "function",
+  "function": {
+    "name": "add",
+    "arguments": "{ \"a\": 5, \"b\": 7 }"
+  }
+}
+
+Our job:
+
+detect tool call
+execute actual Python function
+send result back
+
+
+
+def add(a, b):
+    return a + b
+
+
+import json 
+tool_call = response.choices[0].message.tool_calls[0]
+function_name = tool_call.function.name
+arguments = json.loads(tool_call.function.arguments)
+
+if function_name == "add":
+    result = add(**arguments)
+
+We then SEND RESULT BACK:
+
+second_response = client.chat.completions.create(
+    model="gpt-4.1-mini",
+    messages=[
+        {"role": "user", "content": "What is 5 + 7?"},
+        response.choices[0].message,
+        {
+            "role": "tool",
+            "tool_call_id": tool_call.id,
+            "content": str(result)
+        }
+    ]
+)
