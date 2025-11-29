@@ -1,0 +1,47 @@
+Memory means the agent remembers previous steps in its internal reasoning
+
+Memory is NOT:
+embeddings, vector store, RAG
+
+Memory is: 
+thoughts, previous tool calls, partial results, extracted info, state updates 
+
+Agents need memory to perform multi step tasks.
+
+
+ReAct Pattern -> Reason + Act
+
+The agent does: 
+Thinks("I should search Google")
+Acts(calls a tool)
+Observes(reads tool result)
+Thinks again(What next?)
+Acts again(Call next tool)
+Loop continues untill final answer
+
+
+3) Agent Loop Concept( Core of LangGraph)
+
+A real agent loop:
+
+while not task_complete:
+    model_response = LLM(memory)
+    if LLM wants tool:
+        execute tool
+        update memory
+    else:
+        task_complete = True
+
+
+This loop can run:
+    1 time, 5 times, 50 times(full autonomy)
+
+
+Memory = list of messages
+
+memory = []
+
+every step:
+    append the LLM thoughts, append the tool call, append the tool result 
+
+This builds a chain of thoughts + action

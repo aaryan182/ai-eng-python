@@ -1,0 +1,42 @@
+WILL BUILD
+
+A 3-agent autonomous system:
+
+User Text 
+↓
+Extraction Agent (uses tools to extract info)
+↓
+Validation Agent (fixes missing/wrong fields)
+↓
+Formatting Agent (returns perfect JSON)
+↓
+Final Output
+
+
+This is how modern AI systems operate
+
+
+
+
+AGENT ARCHITECTURE
+
+1) Agent State : 
+Dictionary Storing: 
+{
+    "name": None,
+    "age": None,
+    "skills": [],
+    "domain": None
+}
+
+2) ReAct Loop
+Each loop:
+LLM produces a thought, LLM chooses an Action(tool_call), Tool is executed, Observation is added to memory, Loop continues
+
+3) Validation Layer
+Checks if : Name extracted? , age validated? , Skills non - empty?
+If something missing -> loop again
+
+4) Multi agent chain
+Final Formatting by as second LLM ensures Perfect JSON
+
