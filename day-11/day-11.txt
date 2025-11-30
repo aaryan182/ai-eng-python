@@ -1,0 +1,193 @@
+Embeddings is a vector representation of text.
+
+Example:
+"Apple" -> [0.12, -0.45, 0.88, ...]
+"Banana" -> [0.14, -0.40, 0.90, ...]
+
+Embeddings capture meaning not words.
+
+So: "dog" and "puppy" are close 
+    "cat" and "banana" are far
+
+
+AI Engineers need Embeddings: 
+
+Helps in document search, semantic search, chat with pdfs, recommendation engines, memory retrieval, rag systems, query expansion, deduplication, clustering
+
+
+RAG = Retrieve relevant context -> feed it to LLM -> generate accurate answer
+
+Why need: LLMs dont know private data, forget info, hallicunate
+RAG fixes this.
+
+
+User Query -> Convert to Embeddings
+Find Similar chunks
+Feed Chunks + question to LLM
+LLM answers using retrieved knowledge
+
+
+
+4) Cosine Similarity -> compare Embedding vectors using:
+
+cosine_similarity = angle between vectors
+If vectors point in same direction -> meaning is Similar
+
+
+
+5) Building a working RAG Engine
+
+
+Building: 
+documents -> chunk -> embeddings -> store -> retrieve -> LLM answer
+Using openAI embeddings
+
+
+
+6) Install Embeddings model 
+pip install openai numpy
+
+
+
+7) Create Embeddings
+
+from openai import OpenAI
+client = OpenAI()
+
+def get_embedding(text):
+    response = client.embeddings.create(
+        model = "text-embedding-3-small"
+        input = text
+    )
+    return response.date[0].embedding
+
+
+print(len(get_embedding("hello world")))
+
+
+8) Chunking Strategy
+Do not supply full documents
+LLMs cannot handle large context
+
+Recommend : Chunk Size: 300 - 500 token , overlap: 20 - 60 tokens
+
+def chunk_text(text, chunk_size = 300):
+    words = text.split()
+    chunks = []
+
+    for i in range(0, len(words), chunk_size):
+        chunk = " ".join(words[i:i+chunk_size])
+        chunks.append(chunk)
+
+    return chunks
+
+
+
+
+9) Building of mini vector store(in memory)
+import numpy as np
+
+
+vector_store = []
+
+def add_to_store(text):
+    emb = get_embedding(text)
+    vector_store.append({
+        "text": text, 
+        "embedding": np.array(emb)
+    })
+
+
+10) Cosine similarity Function
+
+def cosine_sim(a, b):
+    return np.dot(a,b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+
+11) Retrieve top k relevant chunks
+
+def search(query, k = 3):
+    q_emb = np.array(get_embedding(query))
+    scored = []
+
+    for item in vector_store:
+        score = cosine_sim(q_emb, item{"embedding"})
+        score.append((score, item["text"]))
+
+    scored.sort(reverse= True)
+    return scored[:k]
+
+
+12) LLM answering with retrieved context(RAG)
+
+def rag_answer(query):
+    top_chunks = search(query, k = 3)
+
+    context = "\n\n".join([t[1] for t in top_chunks])
+
+    prompt = f """
+    Use ONLY the context below to answer the question. 
+
+    Context: 
+    {context}
+
+    Question: {query}
+
+    Answer: 
+    """
+
+        response = client.chat.completions.create(
+            model = "gpt-4.1-mini",
+            messages = [{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message["content"]
+
+
+
+
+13) Full working Pipeline
+
+doc = open("data.txt").read()
+
+chunks= chunk_text(doc)
+
+for ch in chunks:
+    add_to_store(ch)
+
+print(rag_answer("what is the summary of section 2?"))
+
+
+
+14) FastAPI RAG Endpoint
+routers/rag.py
+
+from fastapi import APIRouter
+from pydantic import BaseModel
+from rag_engine import rag_answer
+
+
+router = APIRouter()
+
+class Query(BaseModel):
+    question: str
+
+
+@router.post("/rag")
+def rag_api(data: query)
+    return {"answer": rag_answer(data.question)}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
