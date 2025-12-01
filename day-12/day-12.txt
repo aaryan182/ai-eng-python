@@ -1,0 +1,217 @@
+Why basics rag fails ?
+Basic RAG( just splitting text and retrieving chunks)
+
+Wrong chunks , missing important context, Hallucinations, Bad relevance ranking, overlapping noise, repetitive answers
+
+Why? because: 
+bad chunking => text cut in the middle -> lost meaning
+no metadata => the LLM doesnot know where the chunk came from
+No hybrid search => keyword search actually matters
+No reranking => the top embedding match != best match
+No summarization => Long chunks confuse LLMs
+
+
+2) Advanced Chunking ( Semantic aware)
+
+Instead of splitting by word count, split by meaning 
+
+Rule: Split by structure
+
+Use headings, paragraphs, sections.
+
+Example of semantic chunker: 
+
+import re
+
+def semantic_chunk(text):
+    chunks = re.split(r'\n\s*\n', text)
+    clean_chunks = [c.strip() for c in chunks if len(c.strip()) > 50]
+    return clean_chunks
+
+
+This reduces broken chunks, orphan sentences, context loss 
+
+
+3) metadata
+
+Every chunk should store:
+
+{ 
+    "chunk": "...",
+    "source": "chapter1.pdf",
+    "page": 12,
+    "topic": "Distributed System",
+    "date": "2022-10-22"
+}
+
+Why metadata? Helps filtering, Helps explainability , Help re-ranking, helps retrieval accuracy 
+
+Storage format: 
+vector_store.append({
+    "embedding": emb,
+    "text": chunk,
+    "metadata":{
+        "source": file,
+        "page": page,
+        "topic": topic
+    }
+})
+
+
+
+4) Hybrid Search(keyword + Embedding)
+Hybrid search = keyword search score + embedding similarity score
+
+def keyword_score(query, text):
+    return sum(1 for word in query.lower().split() if word in text.lower())
+
+Combine with cosine similarity:
+def hybrid_score(query, chunk, emb, query_emb):
+    return (
+        0.7 * cosine_sin(query_emb, emb) + 
+        0.3 * keyword_score(query, chunk) / 10
+    )
+
+This dramatically boosts recall.
+
+
+
+5) Reranking 
+
+Even if you retriev top 10 chunks - they still may not be ideal
+
+Use LLM to rerank chunks by relevance
+
+def rerank(query, chunks):
+    prompt = f """
+    Rank the following chunks by relevance to the question: "{query}"
+
+    Return only the top 3 chunks
+
+    Chunks: 
+    {chunks}
+    """
+
+    resp = client.chat.completions.create(
+        model = "gpt-4.1-mini",
+        messages = [{"role": "user", "content": prompt}]
+    )
+    return resp.choices[0].message["content"]
+
+
+6) Real Vector Database options
+
+Redis vector search => Fast, in memory, supports metadata + filters
+
+Pinecone => industry standard, massive scale
+
+PostgreSQL + pgvector => best for production internal systems
+
+
+
+
+
+7) Example: PostgreSQL + pgvector RAG
+
+Install extension:
+sql: 
+CREATE EXTENSION vector;
+
+Create table:
+sql:
+CREATE TABLE docs (
+    id SERIAL PRIMARY KEY,
+    content TEXT,
+    embedding vector(1536),
+    metadata JSONB
+);
+
+
+Insert:
+cur.execute(
+    "INSERT INTO docs(content, embedding, metadata) VALUES (%s, %s, %s)",
+    (text, embedding, json.dumps(meta))
+)
+
+
+Search:
+cur.execute(
+    "SELECT content, metadata FROM docs ORDER BY embedding <=> %s LIMIT 5",
+    (query_emb,)
+)
+
+
+
+
+8) CHUNK SUMMARY IMPROVES RAG 10x
+
+Summaries help LLMs understand context.
+
+def summarize_chunk(chunk):
+    prompt = f"summarize this chunk briefly:\n{chunk}"
+    resp = client.chat.completions.create(
+        model= "gpt-4.1-mini",
+        messages = [{"role": "user", "content": prompt}]
+    )
+    return resp.choices[0].message["content"]
+
+
+Store it:
+vector_store.append({
+    "embedding": get_embedding(chunk),
+    "summary": summarize_chunk(chunk),
+    "full_text": chunk
+})
+
+
+9) fULL Advanced RAG Pipeline
+
+def advanced_rag(query):
+    query_emb = np.array(get_embedding(query))
+
+    // step 1: hybrid retrieval
+    scored = []
+
+    for item in vector_store:
+        score = hybrid_score(query, item["text"], item["embedding"], query_emb)
+        scored.append((score, item))
+
+    // step 2: take top 10
+    top = sorted(scored, reverse = True)[:10]
+
+    // step 3: rerank with LLM
+    chunks = [t[1]["text"] for t in top]
+    reranked = rerank(query, chunks)
+
+    // step 4: final LLM answer
+    prompt = f """
+    Use ONLY the following retrieved context to answer the question:
+    {reranked}
+
+    Question: {query}
+
+    Answer:
+        """
+        response = client.chat.completions.create(
+            model = "gpt-4.1-mini",
+            messages = [{"role": "user", "content": prompt}]
+        )
+
+        return response.choices[0].message["content"]
+
+
+10) FastAPI endpoint for FULL RAG System
+
+from fastapi import APIRouter
+from pydantic import BaseModel
+
+router = APIRouter()
+
+class RAGQuery(BaseModel):
+    question:str
+
+@router.post("/advanced_rag")
+def rag_api(data: RAGQuery):
+    answer = advanced_rag(data.question)
+    return {"answer": answer}
+
