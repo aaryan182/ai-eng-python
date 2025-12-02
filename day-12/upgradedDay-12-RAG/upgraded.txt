@@ -1,0 +1,95 @@
+1) High level architecture
+
+1.1) Ingest Pipeline
+Semantic chunking(split by headings/ paragraphs)
+Chunk summarization(short summary for each chunk)
+Create embeddings(batch)
+Upsert vectors + metadata to vector store
+
+1.2) Query Pipeline(RAG)
+Create query embedding
+Hybrid retrieval( lexical + vector) -> top -N candidates
+Optimal rerank with LLM
+Build context (concatenate top chunks, include metadata)
+Call LLM with prompt template and return answer
+
+3) Extras
+Caching hot queries, metrics, monitoring
+Batch processing for cost efficiency
+Filters by metadata (source/date/author)
+explainability: return sources and scores
+
+
+2) Production improvements (must have)
+
+Semantic chunker (split on headings / paragraphs, avoid mid sentence cuts)
+
+Chunk summary: store a short summary per chunk; use that for reranking and to reduce tokens 
+
+Metadata per chunk: source, page, section, date, hash. Use these for filtering and provenance
+
+Hybrid search: combine lexical (keyword) score + vector similarity. Hybrid yields much better results (OpenAI/Redis notebooks show hybrid queries) 
+
+Reranking: fetch top 10 by vectors then ask the LLM to rerank top 3–5 or use a cheap cross encoder if you have one
+
+Batch embedding & upsert to reduce API calls and cost 
+
+Vector store choice determined by scale/cost/ops (see choices below) 
+
+Monitoring: log query latencies, retrieval scores and top k hit rate 
+
+Test harness: create Q/A test suite to measure recall and accuracy 
+
+
+
+3) Vector store options - tradeoffs and when to pick
+
+A - pinecone(managed, easy , scales)
+Good if you want a hosted vector DB, easy upsert/query and minimal ops
+Ideal for mid to large usage without managing infra
+
+B - Redis (Redis Stack / RediSearch Vector)
+Best for low latency retrieval, hybrid queries, and filtering with rich metadata. Requries Redis stack.
+
+C - PostgreSQL + pgvector
+Best if we prefer SQL, ACID and want to keep everything in Postgres(one DB). Cheap and simpler for smaller datasets.
+
+
+5) Reranking & Hybrid retrieval
+
+
+# 1) retrieve top 10 by vector
+candidates = vector_store_query(query_emb, top_k=10)
+
+# 2) compute lexical (keyword) score
+def keyword_score(q, text):
+    q_words = set(q.lower().split())
+    txt_words = set(text.lower().split())
+    return len(q_words & txt_words) / max(1, len(q_words))
+
+# 3) hybrid score combine
+scored = []
+for item in candidates:
+    vec_score = item['score']   # JSON depends on store
+    lex = keyword_score(query, item['text'])
+    hybrid = 0.75*vec_score + 0.25*lex
+    scored.append((hybrid, item))
+scored.sort(reverse=True)
+
+
+
+6) Chunking + Summarization pipeline 
+
+def semantic_chunk(text):
+    # split by double newline and headings
+    parts = [p.strip() for p in text.split("\n\n") if len(p.strip())>50]
+    return parts
+
+# summarize chunk (use LLM)
+def summarize_chunk(chunk):
+    prompt = f"Summarize in one short sentence:\n\n{chunk}"
+    return llm_client.ask(prompt)
+
+# store: id, chunk_text, summary, embedding(summary) or embedding(chunk)
+
+Storing both chunk_embedding and summary (embedding of summary too) can improve speed and relevance.
