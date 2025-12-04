@@ -1,0 +1,123 @@
+1) Async matters for AI Engineering
+
+Most latency in AI Apps comes from: LLM calls, Database reads, Vector DB queries, External API tools, File I/O(logs, cache, embeddings)
+
+These are I/O bound, NOT CPU bound
+
+Async allows you to not wait for each operation
+
+Example(slow):
+
+LLM call (1.2s)
+Vector DB Search (0.6s)
+Metadata fetch (0.3s)
+Total: 2.1s
+
+Example (async parallel):
+LLM call, VDB search, metadata fetch
+ALL happen together
+Total: 1.2s
+
+
+2) Python async/await in 50 sec
+
+Normal function: 
+def hello():
+    return "hi"
+
+Async function:
+async def hello():
+    return "hi"
+
+await a coroutine:
+async def main():
+    msg = await hello()
+
+3) Running tasks in parallel 3.py File
+
+4) Parallel LLM calls 
+
+Assume we have: summarizer model, sentiment model, classifier model
+4.py file
+
+
+5) Parallel RAG retrieval(multiple sources)
+
+Imagine: Redis retrieval, Pinecone retrieval, local pgvector retrieval
+
+5.py
+
+6) Parallel Tool Execution in Agents
+
+Tools like:
+
+fetch weather
+
+fetch news
+
+fetch stock price
+
+Run in parallel:
+
+async def fetch_weather(city): ...
+async def fetch_news(topic): ...
+async def fetch_stocks(symbol): ...
+
+async def run_tools():
+    w, n, s = await asyncio.gather(
+        fetch_weather("Delhi"),
+        fetch_news("AI"),
+        fetch_stocks("AAPL")
+    )
+    return w, n, s
+
+
+7) Async Agent loop :
+
+7.py file
+
+
+8) Async FastAPI endpoint
+
+Our API should be async so : vector DB calls, LLM calls, external APIs 
+can all run concurrently 
+
+from fastapi import APIRouter
+
+router = APIRouter()
+
+@router.post("/agent")
+async def agent_api(input: Query):
+    result = await agent_loop(input.text)
+    return {"answer": result}
+
+
+9) Parallel Embedding Creation 
+
+Chunking + embedding = slow.
+Make it fast:
+
+async def embed_chunk(chunk):
+    return chunk, get_embedding(chunk)
+
+async def batch_embed(chunks):
+    tasks = [embed_chunk(c) for c in chunks]
+    results = await asyncio.gather(*tasks)
+    return results
+
+
+You can embed 50–200 chunks in parallel in seconds.
+
+10) Optimized Prompt Pipeline
+
+Parallel transformation:
+
+async def refine(text): ...
+async def clean(text): ...
+async def expand(text): ...
+
+async def preprocess(text):
+    clean_t, refined_t, expanded_t = await asyncio.gather(
+        clean(text), refine(text), expand(text)
+    )
+    return clean_t + refined_t + expanded_t
