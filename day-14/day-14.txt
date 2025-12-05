@@ -1,0 +1,87 @@
+1) Multi-Agent System
+Instead of LLM doing everyting, we use multiple specialized agents
+
+Example role: 
+Planner Agent : breaks tasks into steps 
+
+Coder/ worker agent: writes code , solve tasks, executes tools
+
+Critic/ Reviewer Agent: reviews output, catches errors, provides feedback
+
+Executor Agent: Runs code/ tools/ APIs
+
+Memory Agent: Stores & retrieves long term context
+
+UX Agent: Formats final output for user
+
+
+2) Agent Communication Pattern
+
+Agent talks like: Planner -> Worker -> Critic -> Worker -> Critic -> Finalizer
+
+Each Agent: Reads the shared memory, produces an output, Sends message to next agent , Decides if task is complete 
+
+3) Shared Memory
+
+Multi agent system needs memory 
+
+Use :
+memory = {
+    "task": user_task,
+    "steps": [],
+    "draft": "",
+    "review": "",
+    "passed": False
+}
+
+Each agent reads/write into this memory
+This is exactly how LangGraph does state updates
+
+
+
+4) Agent Definitions ( Planner, Worker, Critic)
+
+A) Planner Agent 4A.py File
+B) Worker/ Coder Agent 4B.py File
+C) Critic Agent ( Reviewer) 4C.py File
+
+
+5) Multi- Agent Loop 
+5.py File
+
+
+
+
+7) Multi-Agent Full Pipeline Example
+async def run():
+    task = "Build a Python function to scrape top 10 GitHub repos of a user."
+    output = await multi_agent_system(task)
+    print(output)
+
+asyncio.run(run())
+
+
+We will get:
+Step-by-step plan
+Worker generates script
+Critic checks correctness
+Worker iterates until no errors
+Final agent prints beautiful result
+
+
+8) Parallel Multi-Agent Execution
+
+Some agents can run in parallel:
+Documentation agent
+Type-checking agent
+Test generator agent
+Lint agent
+
+async def parallel_agents(memory):
+    doc_task = doc_agent(memory)
+    test_task = test_agent(memory)
+    lint_task = lint_agent(memory)
+
+    docs, tests, lint = await asyncio.gather(doc_task, test_task, lint_task)
+
+This is how high-performance agent orchestration works.
