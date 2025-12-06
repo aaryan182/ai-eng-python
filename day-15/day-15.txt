@@ -1,0 +1,82 @@
+Building: 
+1) Architecture Devin uses internally
+2) FS tools (read/write/list files)
+3) Code execution tools
+4) Error detectiom + fix loop
+5) Multi agent system with:
+    Planner agent, Coding agent, Executor agent, Debug agent, Finalizer agent
+6) Run end to end coding tasks with real filesystem actions
+
+
+
+1) Devin Architecture
+
+User request -> Planner Agent -> breaks into subtasks -> 
+                Coder Agent -> writes code into files ->
+                Executor Agent -> runs code, captures errors ->
+                Debug Agent -> fixes errors -> 
+                Repeat until successful -> 
+                Finalizer Agent -> clean documentation + output
+
+
+2) Register Tools (FS + Runner)
+Agents need tools so they can act on the system 
+
+File System tools
+a) write file
+def write_file(filepath: str, content: str):
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(content)
+    return f"File '{filepath}' written successfully"
+
+b) Read file
+def read_file(filepath: str):
+    with open(filepath, "r", encoding="utf-8") as f:
+        return f.read()
+
+c) List file
+import os
+def list_files(folder="."):
+    return os.listdir(folder)
+
+
+
+Code Execution tool 
+This creates Devin like "run code" ability
+
+import subprocess
+
+def run_code(command: str):
+    try:
+        result = subprocess.run(
+            command, shell= True,
+            stdout= subprocess.PIPE,
+            stderr= subprocess.PIPE,
+            text= True, timeout=10
+        )
+        return {
+            "stdout": result.stdout,
+            "stderr": result.stderr
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+
+3) Agent Definitons
+
+Planner Agent: Breaks the task into file level steps 
+planner.py file
+
+
+Coder Agent: ( writes files)
+coder.py file
+
+Executor Agent: (runs code)
+Executor.py file
+
+
+Debug Agent: Fixes errors
+Debug.py file
+
+Final Agent : Final.py
