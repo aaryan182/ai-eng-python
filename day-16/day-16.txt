@@ -1,0 +1,148 @@
+LangGraph Introduction
+
+It is used to build multi agent systems, ReAct loops, Planning => Execution => Debugging pipelines
+
+Tool- enabled agents , State machines for AI workflows
+
+
+LangGraph = Nodes (functions) + Edges (conditions) + State (memory)
+
+
+2) LangGraph Core Concepts : 
+
+Nodes: A node is a function , it takes state as input and returns updated state
+
+Example:
+
+def planner_node(state):
+    steps = llm.plan(state["task"])
+    return {"steps": steps}
+
+Edges: Define who runs after whom.
+
+Example:
+
+planner → worker → reviewer → worker → final
+
+Edges define the graph flow.
+
+Graph State:  This is memory. State is a dict:
+
+state = {
+    "task": "...",
+    "steps": [],
+    "draft": "",
+    "review": "",
+    "approved": False
+}
+
+
+Nodes read & modify this state.
+
+
+
+Any node can call tools : 
+file write, code execute, fetch APIs, run shell commands, DB queries, RAG retrieval
+
+
+Branching( conditional edges)
+Nodes can decide the next step dynamically
+
+
+Example: If review says "goog" -> go to final node
+Else -> go back to worker node
+
+
+
+
+
+3) LangGraph structure
+
+from langgraph.graph import StateGraph, END
+
+def step1(state):
+    state["a"] = 1
+    return state
+
+def step2(state):
+    state["b"] = state["a"] + 1
+    return state
+
+
+graph = StateGraph()
+
+graph.add_node("step1", step1)
+graph.add_node("step2", step2)
+
+graph.set_entry_point("step1")
+graph.add_edge("step1", "step2")
+graph.add_edge("step2", END)
+
+executor = graph.compile()
+result = executor.invoke({"task": "example"})
+print(result)
+
+
+4. LangGraph State (Important)
+
+State must be defined using a TypedDict:
+
+from typing import TypedDict, List
+
+class AgentState(TypedDict):
+    task: str
+    steps: List[str]
+    draft: str
+    review: str
+    approved: bool
+
+
+LangGraph enforces correct state updates, making the workflow reliable.
+
+
+
+5. Tool Calling Inside LangGraph Nodes
+
+Example tools:
+
+def write_file_tool(path, content):
+    with open(path, "w") as f:
+        f.write(content)
+    return f"{path} written."
+
+
+Node that uses the tool:
+
+def writer_node(state):
+    file_path = "output.py"
+    write_file_tool(file_path, state["draft"])
+    state["saved_file"] = file_path
+    return state
+
+
+
+6. Branching Logic (Super Important)
+
+This creates self-correcting, Devin-style workflows.
+
+Example:
+
+If critic finds errors → back to worker
+Else → final
+
+def critic_check(state):
+    if "APPROVED" in state["review"]:
+        return "final"
+    return "worker"
+
+
+Register conditional edges:
+
+graph.add_conditional_edges(
+    "critic",
+    critic_check,
+    {
+        "final": "final",
+        "worker": "worker"
+    }
+)
