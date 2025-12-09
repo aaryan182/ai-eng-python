@@ -1,0 +1,13 @@
+Building a single tool langgraph Agent
+
+Email Writer Agent Graph( Intent -> Rewrite => Formal email)
+
+Pipeline ( Graph):
+
+1) Intent Extraction Node
+2) Rewrite Node
+4) Formal Email Node
+
+
+Installing depedencies 
+pip install langgraph openai
