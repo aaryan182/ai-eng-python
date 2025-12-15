@@ -1,0 +1,11 @@
+Multi Agent Langgraph system
+
+Agents: Research Agent -> Summarizer -> Formatter
+
+Building of real multi agent system inside Langgraph where three separate agents collaborate to solve a task
+
+1) Research Agent : Finds information using tools(web search , wiki, local DB, RAG)
+
+2) Summarizer Agent: Condenses research into a clean , short summary
+
+3) Formatter Agent: Turns the summary into a clean report, a bullified email, properly formatted response
