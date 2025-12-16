@@ -1,0 +1,54 @@
+Memory Systems in Agents
+
+1) Why memory is hard ( but critical)
+Without memory, agents:
+forget user preferences, repeat question, lose context across sessions, can't personalize, can't learn
+
+memory turns an LLM into a System
+
+2) Types of Memory 
+2.1) Short term memory => current conversation context , last few messages/steps, lives only during one execution
+
+where it lives : langgraph state, in-memory dict/list
+
+2.2) Long term memory => user preferences, past conversations , learned facts 
+where it lives: redis, vector DB, Database
+
+It is persistent , needs retrieval logic
+
+2.3) Episodic memory => Summaries of past interactions, what happened last time 
+wehere: DB or Redis , often summarized + embedded
+used heavily by ChatGPT memory
+
+2.4) Document Memory => PDFs, notes, docs, chat logs
+retrieved via RAG
+where: vector DB(pinecone, pgvector, redis)
+
+3) REAL AGENT MEMORY ARCHITECTURE
+User Request
+   ↓
+Short-Term Memory (LangGraph state)
+   ↓
+Retrieve Long-Term Memory (Redis/DB)
+   ↓
+Retrieve Episodic Memory (summary)
+   ↓
+Retrieve Document Memory (RAG)
+   ↓
+LLM Decision
+   ↓
+Update Episodic + Long-Term Memory
+
+
+4) MEMORY STORAGE CHOICE (WHAT TO USE)
+Redis (BEST FOR AGENTS)
+Fast, Key-value, TTL support, JSON support ,Vector search (optional)
+
+
+5) PROJECT — AGENT WITH PERSISTENT MEMORY (REDIS)
+
+What the agent will do:
+Remember user preferences
+Recall previous sessions
+Store episodic summaries
+Persist memory across runs
