@@ -1,0 +1,30 @@
+Actions & Tools execution in agents
+External Tools, DB queries, HTTP Calls, File Generation, Email Sending
+
+1) How actions work
+User Request
+  ↓
+Agent (LLM decides action)
+  ↓
+Tool Router (which tool?)
+  ↓
+Tool Execution (DB / HTTP / File / Email)
+  ↓
+Observation (result)
+  ↓
+Agent decides next step or finishes
+
+This is ReAct in production.
+
+
+2) Tool Design Principles 
+Every tool should : Do one thing, have clear inputs, return structured output, side effect safe 
+
+Tool = deterministic code
+Agent = decision logic
+
+3) Tools building : 
+HTTP tool = call external APIs
+DB Tool = query database
+File Tool = generate files
+Email Tool = send Email
