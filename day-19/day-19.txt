@@ -1,0 +1,126 @@
+LLM as Router , conditonal branching, failover nodes 
+
+
+Building planner + router graph with:
+LLM based routing, Conditional branching, Retry + failover logic, Deterministic control
+
+
+1) What is Planning + routing?
+Old way     A -> B -> C -> End
+
+Modern way: Planner (decides next step ) -> router -> Research -> Summarize -> Validate -> Final
+                                                    -> RAG 
+                                                    -> WEB
+
+
+The LLM acts like a traffic controller
+
+2) LLM as a Router (Key Idea)
+
+We ask the LLM:
+
+“Given the current state, what should we do next?”
+
+It returns a route name not text.
+
+Example output:
+
+{
+  "next": "research"
+}
+
+
+This is how LangGraph enables dynamic branching.
+
+3) Define Graph State (with routing + retries)
+
+graph/state.py
+
+4) Planner Node (LLM makes a plan)
+
+This node understands the task
+planner.py
+
+5) Router Node (LLM decides the path)
+router.py
+
+6) Conditional Branching (LangGraph Magic)
+
+LangGraph lets you route dynamically
+
+def route_selector(state: PlanState):
+    return state["route"]
+
+
+Then register branches:
+
+graph.add_conditional_edges(
+    "router",
+    route_selector,
+    {
+        "research": "research",
+        "rag": "rag",
+        "simple_answer": "final",
+        "fail": "failover"
+    }
+)
+
+
+This is EXACTLY how LLM-driven routing works.
+
+7) Research Node
+def research_node(state: PlanState):
+    state["research_notes"] = f"Research results for {state['task']}"
+    return state
+
+8) RAG Node (alternative path)
+def rag_node(state: PlanState):
+    state["research_notes"] = f"RAG-based context for {state['task']}"
+    return state
+
+9) Summarizer Node
+def summarize_node(state: PlanState):
+    prompt = f"""
+Summarize the following notes:
+
+{state['research_notes']}
+"""
+    state["summary"] = call_llm(prompt)
+    return state
+
+10) Failover Node (Critical for Production)
+
+When something goes wrong -> fallback.
+
+def failover_node(state: PlanState):
+    if state["retries"] >= 2:
+        state["final_output"] = "Unable to complete task reliably."
+        return state
+
+    state["retries"] += 1
+    state["route"] = "simple_answer"
+    return state
+
+
+11) Final Node
+def final_node(state: PlanState):
+    prompt = f"""
+Provide a clean final answer for:
+
+Task: {state['task']}
+
+Context:
+{state.get('summary') or state.get('research_notes')}
+"""
+    state["final_output"] = call_llm(prompt)
+    return state
+
+12) LangGraph Node graph.py
+
+13) Run the System
+result = agent.invoke({
+    "task": "Explain how AI impacts remote work productivity",
+    "retries": 0
+})
+
+print(result["final_output"])
