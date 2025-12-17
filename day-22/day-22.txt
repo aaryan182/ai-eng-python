@@ -1,0 +1,177 @@
+Error Handling , Retries and Guardrails in agents
+
+If we skips this - agents will : crash on APIs , loop infinitely, send wrong emails, corrupt DBs , hallucinate actions
+
+
+1) Why Agent Fails => External APIs fail( Network Timeout, 500 errors, Rate limits)
+                   => Tools throw exceptions( DB connection closed, File permission denied, Email server unavailable)
+                   => LLM mistakes(chooses wrong tool, generates invalid arguments, infinite retry loops)
+
+2) ReACT Done properly(Reason -> Act -> Observe)
+Bad ReACT: LLM -> Tool -> Answer
+
+Good ReACT: Reason -> Act -> Observe -> Reason -> Act -> Observe -> Final
+
+Idea: Tools never silently fail , every tool returns an observation(success or error)
+
+
+3) STATE WITH ERROR + Retries
+
+we extend agent STATE
+
+from typing import TypedDict, Any
+
+class SafeAgentState(TypedDict):
+    user_input: str
+    action: str
+    tool_input: dict
+    observation: Any
+    error: str
+    retries: int
+    final_output: str
+
+
+4) Guardrails
+Pre-action guardrails
+Befor executing tools: max retries, allowed tools only, required params present, no destructive ops
+
+MAX_RETRIES= 2
+ALLOWED_ACTIONS = {"http_call", "db_query", "generate_file", "send_email"}
+
+5) SAFE TOOL EXECUTION(TRY/EXCEPT)
+
+
+def safe_execute_tool(state):
+    if state["retries"] >= MAX_RETRIES:
+        state["error"] = "Max retries exceeded"
+        return state
+
+    action = state["action"]
+    args = state["tool_input"]
+
+    if action not in ALLOWED_ACTIONS:
+        state["error"] = f"Action '{action}' not allowed"
+        return state
+
+    try:
+        if action == "http_call":
+            state["observation"] = http_call(**args)
+
+        elif action == "db_query":
+            state["observation"] = db_query(**args)
+
+        elif action == "generate_file":
+            state["observation"] = generate_file(**args)
+
+        elif action == "send_email":
+            state["observation"] = send_email(**args)
+
+        state["error"] = ""
+
+    except Exception as e:
+        state["error"] = str(e)
+        state["retries"] += 1
+
+    return state
+
+6) RETRY STRATEGY (SMART, NOT INFINITE)
+
+Retry only when:
+Network errors
+Timeouts
+Temporary failures
+
+Never retry when:
+Validation errors
+Permission denied
+User input invalid
+
+Example retry router:
+
+def retry_router(state):
+    if state["error"] and state["retries"] < MAX_RETRIES:
+        return "decide"      # re-plan
+    return "final"
+
+7) LLM AS ERROR-RECOVERY BRAIN
+
+If a tool fails ask the LLM how to fix.
+
+def recovery_node(state):
+    prompt = f"""
+The following tool execution failed:
+
+Action: {state['action']}
+Error: {state['error']}
+
+Decide what to do next:
+- retry with fixed inputs
+- choose a different action
+- abort
+
+Return JSON:
+{{ "action": "...", "tool_input": {{}} }}
+"""
+    decision = call_llm(prompt)
+    data = json.loads(decision)
+    state["action"] = data["action"]
+    state["tool_input"] = data.get("tool_input", {})
+    return state
+
+
+This is real ReAct.
+
+8) FAILOVER NODE 
+def failover_node(state):
+    state["final_output"] = (
+        "Sorry, I couldn't complete the action safely. "
+        "Please try again later or rephrase your request."
+    )
+    return state
+
+9) LANGGRAPH WITH SAFETY + RETRIES
+
+graph = StateGraph(SafeAgentState)
+
+graph.add_node("decide", decide_action)
+graph.add_node("execute", safe_execute_tool)
+graph.add_node("recover", recovery_node)
+graph.add_node("failover", failover_node)
+graph.add_node("final", respond_node)
+
+graph.set_entry_point("decide")
+
+graph.add_edge("decide", "execute")
+
+graph.add_conditional_edges(
+    "execute",
+    lambda s: "recover" if s["error"] else "final",
+    {
+        "recover": "recover",
+        "final": "final"
+    }
+)
+
+graph.add_conditional_edges(
+    "recover",
+    retry_router,
+    {
+        "decide": "decide",
+        "final": "failover"
+    }
+)
+
+graph.add_edge("failover", END)
+graph.add_edge("final", END)
+
+10) POST ACTION GUARDRAILS
+
+Before returning result:
+Did tool output match expectations?
+Did DB rows exist?
+Did email send succeed?
+
+def validate_observation(state):
+    if state["action"] == "db_query" and not state["observation"]:
+        state["error"] = "Empty DB result"
+    return state
