@@ -1,0 +1,26 @@
+Redis based job queue
+Producer/worker architecture
+Retry queue + backoff
+Dead letter queue
+Idempotent job handling
+Monitoring hooks
+
+
+API / Agent
+  ↓
+Redis Queue (Jobs)
+  ↓
+Worker Pool
+  ↓
+Retry Queue (on failure)
+  ↓
+Dead Letter Queue (after max retries)
+
+
+EDGE CASES HANDLED
+
+ Worker crashes → job stays in Redis
+ External API failure → retry
+ Infinite retry prevention
+ Poison jobs → dead letter queue
+ Multiple workers → safe concurrency
