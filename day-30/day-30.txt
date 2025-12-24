@@ -1,0 +1,27 @@
+Rate Limiting 
+
+It is done to prevent: abuse, cost explosions, Noisy ,DDOS style traffic, one user killing the system
+
+
+Naive Approach:
+
+if requests> limit: block
+
+Production approach:
+
+Each user/IP has a bucket
+Tokens refill over time
+Each request consumes a Token
+No token -> reject
+
+This allows bursts + fairness
+
+
+TOKEN BUCKET 
+
+Bucket capacity = max burst (e.g. 10 requests)
+Refill rate = tokens per second (e.g. 1/sec)
+Each request consumes 1 token
+If bucket empty -> rate limited
+
+This is better than fixed window
