@@ -1,0 +1,45 @@
+Background Workers : Almost everything expensive or slow in production runs in background workers
+
+Background worker fundamentals
+Worker vs API separation
+Pull-based vs push-based workers
+Graceful shutdown
+Visibility timeout concepts
+Horizontal scaling
+Failure handling
+
+
+Bad Design : 
+HTTP request -> long task -> timeout -> crash
+
+Production Design : 
+HTTP Request -> enqueue job → return 200
+                    ↓
+              background worker
+                    ↓
+             external systems / AI
+
+Key idea:
+APIs respond fast
+Workers do slow work
+Queue connects them
+
+
+ARCHITECTURE (
+Client
+  ↓
+API Server
+  ↓
+Redis / Queue
+  ↓
+Background Workers (N replicas)
+  ↓
+External APIs / DB / AI models
+
+
+Workers are:
+Stateless
+Horizontally scalable
+Restartable
+
+Isolated from user traffic
