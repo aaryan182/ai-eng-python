@@ -1,0 +1,19 @@
+Webhooks - are how real systems talk to each other asynchronously
+
+Secure signature verification
+event routing
+idempotency(no duplicate processing)
+async background handling(queue friendly)
+retry & failure handling
+audit logging
+
+
+Bad Design: 
+recieve webhook => process immediately => crash on failure
+
+Production design:
+Recieve webhook -> verify signature -> store event (idempotency) -> Enqueue job -> acknowledge sender (200 ok) -> process async
+
+
+why? webhook senders retry aggressively , we must be fast & idemptoent , never block the HTTP request
+
